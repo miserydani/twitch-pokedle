@@ -1,1 +1,1660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>Twitch Pokedle</title>
+
+<script src="https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/dist/tmi.min.js"></script>
+
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Press Start 2P', monospace;
+    color: white;
+}
+
+#game {
+    width: 850px;
+    height: 720px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* =========================================
+   HEADER
+========================================= */
+
+.header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+}
+
+.logo {
+    font-size: 25px;
+    letter-spacing: 2px;
+    text-shadow:
+        3px 3px 0 #000,
+        -2px 0 0 #000,
+        0 2px 0 #000;
+}
+
+.round {
+    font-size: 15px;
+    text-shadow: 2px 2px 0 #000;
+}
+
+/* =========================================
+   TWITCH STATUS
+========================================= */
+
+.status {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+
+    font-size: 9px;
+
+    padding: 7px 10px;
+
+    border-radius: 4px;
+
+    background: rgba(0,0,0,.65);
+
+    text-shadow: 1px 1px 0 #000;
+
+    opacity: .9;
+}
+
+.status.connecting {
+    color: #ffd84d;
+}
+
+.status.connected {
+    color: #65ff73;
+}
+
+.status.error {
+    color: #ff5757;
+}
+
+/* =========================================
+   POKEMON AREA
+========================================= */
+
+.pokemon-container {
+
+    width: 430px;
+    height: 430px;
+
+    margin-top: 35px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    position: relative;
+}
+
+#pokemonCanvas {
+
+    width: 400px;
+    height: 400px;
+
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+
+    display: block;
+}
+
+/* =========================================
+   CLUES
+========================================= */
+
+.clues {
+
+    width: 690px;
+
+    margin-top: 10px;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 10px;
+}
+
+.clue {
+
+    min-height: 55px;
+
+    padding: 10px;
+
+    background: rgba(0,0,0,.75);
+
+    border: 3px solid rgba(255,255,255,.75);
+
+    box-shadow:
+        4px 4px 0 rgba(0,0,0,.8);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    text-align: center;
+}
+
+.clue-title {
+
+    font-size: 8px;
+
+    opacity: .65;
+
+    margin-bottom: 7px;
+}
+
+.clue-value {
+
+    font-size: 11px;
+
+    line-height: 1.5;
+}
+
+/* =========================================
+   ATTEMPTS
+========================================= */
+
+.attempts {
+
+    margin-top: 14px;
+
+    font-size: 11px;
+
+    text-shadow:
+        2px 2px 0 #000;
+}
+
+/* =========================================
+   WINNER
+========================================= */
+
+#winner {
+
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    width: 650px;
+
+    padding: 28px;
+
+    background: rgba(0,0,0,.94);
+
+    border: 5px solid white;
+
+    box-shadow:
+        8px 8px 0 rgba(0,0,0,.9);
+
+    display: none;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    text-align: center;
+
+    z-index: 50;
+}
+
+.winner-title {
+
+    font-size: 18px;
+
+    margin-bottom: 20px;
+
+    color: #65ff73;
+
+    text-shadow:
+        3px 3px 0 #000;
+}
+
+.winner-name {
+
+    font-size: 25px;
+
+    margin-bottom: 15px;
+}
+
+.winner-user {
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+.next {
+
+    margin-top: 25px;
+
+    font-size: 9px;
+
+    opacity: .7;
+}
+
+/* =========================================
+   FINAL
+========================================= */
+
+#finished {
+
+    position: absolute;
+
+    inset: 0;
+
+    display: none;
+
+    justify-content: center;
+
+    align-items: center;
+
+    flex-direction: column;
+
+    background: rgba(0,0,0,.92);
+
+    z-index: 100;
+
+    text-align: center;
+}
+
+.finished-title {
+
+    font-size: 25px;
+
+    margin-bottom: 25px;
+}
+
+.finished-score {
+
+    font-size: 18px;
+
+    color: #65ff73;
+}
+
+.finished-tomorrow {
+
+    margin-top: 25px;
+
+    font-size: 10px;
+
+    opacity: .7;
+
+    line-height: 2;
+}
+
+/* =========================================
+   LOADING
+========================================= */
+
+#loading {
+
+    position: absolute;
+
+    inset: 0;
+
+    background: rgba(0,0,0,.95);
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    flex-direction: column;
+
+    z-index: 200;
+}
+
+.loading-title {
+
+    font-size: 18px;
+
+    margin-bottom: 20px;
+}
+
+.loading-text {
+
+    font-size: 9px;
+
+    opacity: .65;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <div class="header">
+
+        <div class="logo">
+            POKEDLE
+        </div>
+
+        <div class="round" id="roundText">
+            RONDA 1 / 5
+        </div>
+
+    </div>
+
+    <div id="status" class="status connecting">
+        ● CONECTANDO TWITCH...
+    </div>
+
+    <div class="pokemon-container">
+
+        <canvas
+            id="pokemonCanvas"
+            width="400"
+            height="400">
+        </canvas>
+
+    </div>
+
+    <div class="clues">
+
+        <div class="clue">
+
+            <div class="clue-title">
+                TIPO
+            </div>
+
+            <div
+                class="clue-value"
+                id="typeClue">
+                ???
+            </div>
+
+        </div>
+
+        <div class="clue">
+
+            <div class="clue-title">
+                GENERACIÓN
+            </div>
+
+            <div
+                class="clue-value"
+                id="generationClue">
+                ???
+            </div>
+
+        </div>
+
+        <div class="clue">
+
+            <div class="clue-title">
+                COLOR
+            </div>
+
+            <div
+                class="clue-value"
+                id="colorClue">
+                ???
+            </div>
+
+        </div>
+
+        <div class="clue">
+
+            <div class="clue-title">
+                ALTURA / PESO
+            </div>
+
+            <div
+                class="clue-value"
+                id="sizeClue">
+                ???
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="attempts">
+        INTENTOS: <span id="attemptCount">0</span>
+    </div>
+
+</div>
+
+
+<!-- ======================================
+     WINNER
+====================================== -->
+
+<div id="winner">
+
+    <div class="winner-title">
+        ¡CORRECTO!
+    </div>
+
+    <div
+        class="winner-name"
+        id="winnerPokemon">
+        PIKACHU
+    </div>
+
+    <div class="winner-user">
+        ADIVINÓ:
+        <br>
+        <span id="winnerUser">
+            @usuario
+        </span>
+    </div>
+
+    <div class="next">
+        PREPARANDO SIGUIENTE RONDA...
+    </div>
+
+</div>
+
+
+<!-- ======================================
+     FINAL
+====================================== -->
+
+<div id="finished">
+
+    <div class="finished-title">
+        POKEDLE COMPLETADO
+    </div>
+
+    <div class="finished-score">
+        5 / 5
+    </div>
+
+    <div class="finished-tomorrow">
+        NUEVOS POKÉMON MAÑANA
+    </div>
+
+</div>
+
+
+<!-- ======================================
+     LOADING
+====================================== -->
+
+<div id="loading">
+
+    <div class="loading-title">
+        CARGANDO POKEDLE...
+    </div>
+
+    <div class="loading-text">
+        PREPARANDO LOS POKÉMON
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CONFIGURACIÓN
+========================================================= */
+
+const DEFAULT_CHANNEL = "rubius";
+
+const params = new URLSearchParams(
+    window.location.search
+);
+
+let CHANNEL =
+    params.get("channel") ||
+    DEFAULT_CHANNEL;
+
+CHANNEL = CHANNEL
+    .replace("#", "")
+    .trim()
+    .toLowerCase();
+
+
+/* =========================================================
+   ELEMENTOS
+========================================================= */
+
+const canvas =
+    document.getElementById("pokemonCanvas");
+
+const ctx =
+    canvas.getContext("2d");
+
+const loading =
+    document.getElementById("loading");
+
+const status =
+    document.getElementById("status");
+
+const roundText =
+    document.getElementById("roundText");
+
+const attemptCount =
+    document.getElementById("attemptCount");
+
+const typeClue =
+    document.getElementById("typeClue");
+
+const generationClue =
+    document.getElementById("generationClue");
+
+const colorClue =
+    document.getElementById("colorClue");
+
+const sizeClue =
+    document.getElementById("sizeClue");
+
+const winner =
+    document.getElementById("winner");
+
+const winnerPokemon =
+    document.getElementById("winnerPokemon");
+
+const winnerUser =
+    document.getElementById("winnerUser");
+
+const finished =
+    document.getElementById("finished");
+
+
+/* =========================================================
+   VARIABLES DEL JUEGO
+========================================================= */
+
+const TOTAL_ROUNDS = 5;
+
+let currentRound = 0;
+
+let attempts = 0;
+
+let solved = false;
+
+let transitioning = false;
+
+let pokemonData = [];
+
+let currentPokemon = null;
+
+
+/* =========================================================
+   GENERACIONES
+========================================================= */
+
+function getGeneration(id) {
+
+    if (id <= 151) return 1;
+
+    if (id <= 251) return 2;
+
+    if (id <= 386) return 3;
+
+    if (id <= 493) return 4;
+
+    if (id <= 649) return 5;
+
+    if (id <= 721) return 6;
+
+    if (id <= 809) return 7;
+
+    if (id <= 905) return 8;
+
+    return 9;
+}
+
+
+/* =========================================================
+   DAILY SEED
+========================================================= */
+
+function getDateSeed() {
+
+    const now = new Date();
+
+    const year =
+        now.getUTCFullYear();
+
+    const month =
+        now.getUTCMonth() + 1;
+
+    const day =
+        now.getUTCDate();
+
+    return (
+        year * 10000 +
+        month * 100 +
+        day
+    );
+}
+
+
+function seededRandom(seed) {
+
+    let x =
+        Math.sin(seed) * 10000;
+
+    return x - Math.floor(x);
+}
+
+
+/* =========================================================
+   CREAR 5 POKÉMON DEL DÍA
+========================================================= */
+
+function createDailyPokemonIds() {
+
+    const seed =
+        getDateSeed();
+
+    const ids = [];
+
+    let offset = 0;
+
+    while (ids.length < TOTAL_ROUNDS) {
+
+        const random =
+            seededRandom(seed + offset);
+
+        const id =
+            Math.floor(
+                random * 1025
+            ) + 1;
+
+        if (!ids.includes(id)) {
+
+            ids.push(id);
+
+        }
+
+        offset++;
+    }
+
+    return ids;
+}
+
+
+/* =========================================================
+   POKEAPI
+========================================================= */
+
+async function getPokemon(id) {
+
+    const pokemonResponse =
+        await fetch(
+            `https://pokeapi.co/api/v2/pokemon/${id}`
+        );
+
+    const pokemon =
+        await pokemonResponse.json();
+
+
+    const speciesResponse =
+        await fetch(
+            `https://pokeapi.co/api/v2/pokemon-species/${id}`
+        );
+
+    const species =
+        await speciesResponse.json();
+
+
+    return {
+
+        id: pokemon.id,
+
+        name:
+            pokemon.name,
+
+        displayName:
+            pokemon.name
+                .split("-")
+                .map(
+                    word =>
+                        word.charAt(0).toUpperCase() +
+                        word.slice(1)
+                )
+                .join(" "),
+
+        types:
+            pokemon.types.map(
+                item =>
+                    translateType(
+                        item.type.name
+                    )
+            ),
+
+        generation:
+            getGeneration(
+                pokemon.id
+            ),
+
+        color:
+            translateColor(
+                species.color
+                    ? species.color.name
+                    : "unknown"
+            ),
+
+        height:
+            pokemon.height / 10,
+
+        weight:
+            pokemon.weight / 10,
+
+        image:
+            pokemon.sprites
+                .other
+                ?.["official-artwork"]
+                ?.front_default ||
+            pokemon.sprites
+                .front_default
+
+    };
+
+}
+
+
+/* =========================================================
+   TRADUCCIONES
+========================================================= */
+
+function translateType(type) {
+
+    const types = {
+
+        normal: "NORMAL",
+        fire: "FUEGO",
+        water: "AGUA",
+        electric: "ELÉCTRICO",
+        grass: "PLANTA",
+        ice: "HIELO",
+        fighting: "LUCHA",
+        poison: "VENENO",
+        ground: "TIERRA",
+        flying: "VOLADOR",
+        psychic: "PSÍQUICO",
+        bug: "BICHO",
+        rock: "ROCA",
+        ghost: "FANTASMA",
+        dragon: "DRAGÓN",
+        dark: "SINIESTRO",
+        steel: "ACERO",
+        fairy: "HADA"
+
+    };
+
+    return types[type] || type.toUpperCase();
+}
+
+
+function translateColor(color) {
+
+    const colors = {
+
+        black: "NEGRO",
+        blue: "AZUL",
+        brown: "CAFÉ",
+        gray: "GRIS",
+        green: "VERDE",
+        pink: "ROSA",
+        purple: "MORADO",
+        red: "ROJO",
+        white: "BLANCO",
+        yellow: "AMARILLO"
+
+    };
+
+    return colors[color] || color.toUpperCase();
+}
+
+
+/* =========================================================
+   NORMALIZAR NOMBRES
+========================================================= */
+
+function normalize(text) {
+
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .replace(
+            /[^a-z0-9]/g,
+            ""
+        );
+
+}
+
+
+/* =========================================================
+   ALIAS
+========================================================= */
+
+const aliases = {
+
+    pikachu: "pikachu",
+
+    charizard: "charizard",
+
+    charmeleon: "charmeleon",
+
+    charmander: "charmander",
+
+    bulbasaur: "bulbasaur",
+
+    ivysaur: "ivysaur",
+
+    venusaur: "venusaur",
+
+    squirtle: "squirtle",
+
+    wartortle: "wartortle",
+
+    blastoise: "blastoise",
+
+    mewtwo: "mewtwo",
+
+    mew: "mew",
+
+    eevee: "eevee",
+
+    snorlax: "snorlax",
+
+    lucario: "lucario",
+
+    greninja: "greninja",
+
+    gengar: "gengar",
+
+    gyarados: "gyarados",
+
+    dragonite: "dragonite"
+
+};
+
+
+/* =========================================================
+   CANVAS PIXELADO
+========================================================= */
+
+const pixelSteps = [
+
+    8,
+    12,
+    18,
+    30,
+    50,
+    90,
+    140,
+    200,
+    280
+
+];
+
+
+function drawPixelated(image, resolution) {
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const temp =
+        document.createElement("canvas");
+
+    temp.width =
+        resolution;
+
+    temp.height =
+        resolution;
+
+    const tempCtx =
+        temp.getContext("2d");
+
+    tempCtx.imageSmoothingEnabled =
+        false;
+
+    tempCtx.clearRect(
+        0,
+        0,
+        resolution,
+        resolution
+    );
+
+    tempCtx.drawImage(
+        image,
+        0,
+        0,
+        resolution,
+        resolution
+    );
+
+
+    ctx.imageSmoothingEnabled =
+        false;
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    ctx.drawImage(
+        temp,
+        0,
+        0,
+        resolution,
+        resolution,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+}
+
+
+/* =========================================================
+   CARGAR IMAGEN
+========================================================= */
+
+async function loadPokemonImage(url) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const img =
+                new Image();
+
+            img.crossOrigin =
+                "anonymous";
+
+            img.onload =
+                () => resolve(img);
+
+            img.onerror =
+                reject;
+
+            img.src = url;
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   MOSTRAR POKÉMON
+========================================================= */
+
+async function renderPokemon() {
+
+    if (!currentPokemon)
+        return;
+
+
+    const image =
+        await loadPokemonImage(
+            currentPokemon.image
+        );
+
+
+    let resolutionIndex =
+        Math.min(
+            attempts,
+            pixelSteps.length - 1
+        );
+
+
+    const resolution =
+        pixelSteps[
+            resolutionIndex
+        ];
+
+
+    drawPixelated(
+        image,
+        resolution
+    );
+
+}
+
+
+/* =========================================================
+   PISTAS
+========================================================= */
+
+function updateClues() {
+
+    if (!currentPokemon)
+        return;
+
+
+    /*
+       INTENTO 0
+       No pistas
+    */
+
+    if (attempts >= 1) {
+
+        typeClue.textContent =
+            currentPokemon.types.join(" / ");
+
+    }
+    else {
+
+        typeClue.textContent =
+            "???";
+
+    }
+
+
+    /*
+       INTENTO 2
+    */
+
+    if (attempts >= 2) {
+
+        generationClue.textContent =
+            "GENERACIÓN " +
+            currentPokemon.generation;
+
+    }
+    else {
+
+        generationClue.textContent =
+            "???";
+
+    }
+
+
+    /*
+       INTENTO 3
+    */
+
+    if (attempts >= 3) {
+
+        colorClue.textContent =
+            currentPokemon.color;
+
+    }
+    else {
+
+        colorClue.textContent =
+            "???";
+
+    }
+
+
+    /*
+       INTENTO 4
+    */
+
+    if (attempts >= 4) {
+
+        sizeClue.textContent =
+            currentPokemon.height +
+            " m / " +
+            currentPokemon.weight +
+            " kg";
+
+    }
+    else {
+
+        sizeClue.textContent =
+            "???";
+
+    }
+
+}
+
+
+/* =========================================================
+   ACTUALIZAR UI
+========================================================= */
+
+async function updateGame() {
+
+    attemptCount.textContent =
+        attempts;
+
+    roundText.textContent =
+        `RONDA ${currentRound + 1} / ${TOTAL_ROUNDS}`;
+
+    updateClues();
+
+    await renderPokemon();
+
+}
+
+
+/* =========================================================
+   CARGAR RONDA
+========================================================= */
+
+async function loadRound(index) {
+
+    currentRound =
+        index;
+
+    attempts =
+        0;
+
+    solved =
+        false;
+
+    transitioning =
+        false;
+
+
+    winner.style.display =
+        "none";
+
+
+    roundText.textContent =
+        `RONDA ${currentRound + 1} / ${TOTAL_ROUNDS}`;
+
+
+    currentPokemon =
+        pokemonData[currentRound];
+
+
+    await updateGame();
+
+}
+
+
+/* =========================================================
+   GANAR
+========================================================= */
+
+function solvePokemon(username) {
+
+    if (solved)
+        return;
+
+    if (transitioning)
+        return;
+
+
+    solved =
+        true;
+
+
+    winnerPokemon.textContent =
+        currentPokemon.displayName;
+
+    winnerUser.textContent =
+        "@" + username;
+
+
+    winner.style.display =
+        "flex";
+
+
+    setTimeout(
+        () => {
+
+            if (currentRound + 1 >= TOTAL_ROUNDS) {
+
+                winner.style.display =
+                    "none";
+
+                finished.style.display =
+                    "flex";
+
+                return;
+
+            }
+
+
+            loadRound(
+                currentRound + 1
+            );
+
+        },
+        3500
+    );
+
+}
+
+
+/* =========================================================
+   GUESS
+========================================================= */
+
+async function processGuess(
+    username,
+    guess
+) {
+
+    if (!currentPokemon)
+        return;
+
+    if (solved)
+        return;
+
+    if (transitioning)
+        return;
+
+
+    guess =
+        guess
+            .trim()
+            .toLowerCase();
+
+
+    if (!guess)
+        return;
+
+
+    /*
+       Evitar comandos extraños
+    */
+
+    if (
+        guess.startsWith("!")
+    )
+        return;
+
+
+    /*
+       Resolver alias
+    */
+
+    const normalizedGuess =
+        normalize(
+            aliases[guess] ||
+            guess
+        );
+
+
+    const correct =
+        normalizedGuess ===
+        normalize(
+            currentPokemon.name
+        );
+
+
+    if (correct) {
+
+        solvePokemon(
+            username
+        );
+
+        return;
+
+    }
+
+
+    /*
+       ERROR
+    */
+
+    attempts++;
+
+
+    /*
+       Cuando se llega al máximo,
+       mantenemos la última resolución.
+    */
+
+    if (
+        attempts >
+        pixelSteps.length - 1
+    ) {
+
+        attempts =
+            pixelSteps.length - 1;
+
+    }
+
+
+    await updateGame();
+
+}
+
+
+/* =========================================================
+   TWITCH TMI.JS
+========================================================= */
+
+function setStatus(
+    text,
+    type
+) {
+
+    status.textContent =
+        text;
+
+    status.className =
+        "status " + type;
+
+}
+
+
+/* =========================================================
+   CONECTAR TWITCH
+========================================================= */
+
+function connectTwitch() {
+
+    setStatus(
+        "● CONECTANDO TWITCH...",
+        "connecting"
+    );
+
+
+    if (
+        typeof tmi ===
+        "undefined"
+    ) {
+
+        setStatus(
+            "● ERROR TMI.JS",
+            "error"
+        );
+
+        console.error(
+            "TMI.js no se cargó."
+        );
+
+        return;
+
+    }
+
+
+    const client =
+        new tmi.Client({
+
+            options: {
+                debug: false
+            },
+
+            connection: {
+                secure: true,
+                reconnect: true
+            },
+
+            channels: [
+                CHANNEL
+            ]
+
+        });
+
+
+    client.on(
+        "connected",
+        (
+            address,
+            port
+        ) => {
+
+            console.log(
+                "Conectado a Twitch:",
+                CHANNEL
+            );
+
+            setStatus(
+                "● TWITCH CONECTADO",
+                "connected"
+            );
+
+        }
+    );
+
+
+    client.on(
+        "disconnected",
+        reason => {
+
+            console.log(
+                "Twitch desconectado:",
+                reason
+            );
+
+            setStatus(
+                "● TWITCH DESCONECTADO",
+                "error"
+            );
+
+        }
+    );
+
+
+    client.on(
+        "connecting",
+        () => {
+
+            setStatus(
+                "● CONECTANDO TWITCH...",
+                "connecting"
+            );
+
+        }
+    );
+
+
+    client.on(
+        "message",
+        (
+            channel,
+            tags,
+            message,
+            self
+        ) => {
+
+            if (self)
+                return;
+
+
+            const username =
+                tags["display-name"] ||
+                tags.username ||
+                "usuario";
+
+
+            const cleanMessage =
+                message
+                    .trim();
+
+
+            console.log(
+                `[${username}] ${cleanMessage}`
+            );
+
+
+            /*
+               !guess pikachu
+            */
+
+            if (
+                cleanMessage
+                    .toLowerCase()
+                    .startsWith("!guess ")
+            ) {
+
+                const guess =
+                    cleanMessage
+                        .slice(7)
+                        .trim();
+
+
+                processGuess(
+                    username,
+                    guess
+                );
+
+                return;
+
+            }
+
+
+            /*
+               !g pikachu
+            */
+
+            if (
+                cleanMessage
+                    .toLowerCase()
+                    .startsWith("!g ")
+            ) {
+
+                const guess =
+                    cleanMessage
+                        .slice(3)
+                        .trim();
+
+
+                processGuess(
+                    username,
+                    guess
+                );
+
+                return;
+
+            }
+
+        }
+    );
+
+
+    client.connect()
+        .catch(
+            error => {
+
+                console.error(
+                    "Error conectando a Twitch:",
+                    error
+                );
+
+                setStatus(
+                    "● ERROR TWITCH",
+                    "error"
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   INICIALIZAR JUEGO
+========================================================= */
+
+async function initializeGame() {
+
+    try {
+
+        const ids =
+            createDailyPokemonIds();
+
+
+        console.log(
+            "Pokémon del día:",
+            ids
+        );
+
+
+        const requests =
+            ids.map(
+                id =>
+                    getPokemon(id)
+            );
+
+
+        pokemonData =
+            await Promise.all(
+                requests
+            );
+
+
+        await loadRound(0);
+
+
+        loading.style.display =
+            "none";
+
+
+        connectTwitch();
+
+
+    }
+    catch (error) {
+
+        console.error(
+            "Error inicializando:",
+            error
+        );
+
+
+        loading.querySelector(
+            ".loading-title"
+        ).textContent =
+            "ERROR CARGANDO POKEDLE";
+
+
+        loading.querySelector(
+            ".loading-text"
+        ).textContent =
+            "REVISA LA CONSOLA";
+
+    }
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+initializeGame();
+
+</script>
+
+</body>
+</html>
