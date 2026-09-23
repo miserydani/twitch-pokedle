@@ -677,22 +677,104 @@ function seededRandom(seed) {
 /* =========================================================
    CREAR 5 POKÉMON DEL DÍA
 ========================================================= */
-
+    
 function createDailyPokemonIds() {
 
+    const TOTAL_POKEMON = 1025;
+    const RECENT_LIMIT = 25;
+
+    let recent = [];
+
+    try {
+        recent =
+            JSON.parse(
+                localStorage.getItem(
+                    "pokedle_recent_pokemon"
+                )
+            ) || [];
+    }
+    catch (error) {
+        recent = [];
+    }
+
+
     const ids = [];
+
+
+    /*
+       Elegimos 5 Pokémon nuevos.
+       No pueden estar entre los últimos 25.
+    */
 
     while (ids.length < TOTAL_ROUNDS) {
 
         const id =
             Math.floor(
-                Math.random() * 1025
+                Math.random() * TOTAL_POKEMON
             ) + 1;
 
-        if (!ids.includes(id)) {
-            ids.push(id);
-        }
+
+        /*
+           Evitar duplicados dentro
+           de la partida actual.
+        */
+
+        if (ids.includes(id))
+            continue;
+
+
+        /*
+           Evitar Pokémon utilizados
+           recientemente.
+        */
+
+        if (recent.includes(id))
+            continue;
+
+
+        ids.push(id);
     }
+
+
+    /*
+       Guardamos los nuevos Pokémon
+       en el historial.
+    */
+
+    recent =
+        [...recent, ...ids];
+
+
+    /*
+       Solo conservamos los últimos 25.
+    */
+
+    recent =
+        recent.slice(-RECENT_LIMIT);
+
+
+    try {
+
+        localStorage.setItem(
+            "pokedle_recent_pokemon",
+            JSON.stringify(recent)
+        );
+
+    }
+    catch (error) {
+
+        console.warn(
+            "No se pudo guardar el historial."
+        );
+
+    }
+
+
+    console.log(
+        "Nuevos Pokémon:",
+        ids
+    );
+
 
     return ids;
 }
