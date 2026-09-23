@@ -680,35 +680,22 @@ function seededRandom(seed) {
 
 function createDailyPokemonIds() {
 
-    const seed =
-        getDateSeed();
-
     const ids = [];
-
-    let offset = 0;
 
     while (ids.length < TOTAL_ROUNDS) {
 
-        const random =
-            seededRandom(seed + offset);
-
         const id =
             Math.floor(
-                random * 1025
+                Math.random() * 1025
             ) + 1;
 
         if (!ids.includes(id)) {
-
             ids.push(id);
-
         }
-
-        offset++;
     }
 
     return ids;
 }
-
 
 /* =========================================================
    POKEAPI
